@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Images (테스트 이미지)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+
+# Models (Stable Diffusion 모델 캐시)
+.cache/
+models/
+checkpoints/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local

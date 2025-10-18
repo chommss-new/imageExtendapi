@@ -1,0 +1,11 @@
+# LaMa AI model additional packages
+# Install after requirements.txt
+
+# PyTorch (CPU version)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# LaMa dependencies
+easydict>=1.11
+pyyaml>=6.0.1
+tqdm>=4.66.0

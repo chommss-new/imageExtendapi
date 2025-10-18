@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Extender API 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        input[type="file"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="file"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .image-box {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .image-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .image-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .info {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #2e7d32;
+        }
+
+        @media (max-width: 768px) {
+            .result-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Image Extender API (Stable Diffusion)</h1>
+            <p>SD AI로 이미지를 배경에 맞춰 자연스럽게 확장해보세요</p>
+        </div>
+
+        <div class="content">
+            <!-- 파일 업로드 -->
+            <div class="section">
+                <h2>1. 이미지 선택</h2>
+                <div class="form-group">
+                    <label for="imageInput">이미지 파일 업로드</label>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+            </div>
+
+            <!-- 확장 설정 -->
+            <div class="section">
+                <h2>2. 확장 설정</h2>
+
+                <div class="form-group">
+                    <label for="extendMode">확장 모드</label>
+                    <select id="extendMode">
+                        <option value="pixels">픽셀 단위 확장</option>
+                        <option value="size">목표 크기 지정</option>
+                    </select>
+                </div>
+
+                <!-- 픽셀 확장 모드 -->
+                <div id="pixelMode" class="controls">
+                    <div class="form-group">
+                        <label for="top">위쪽 (px)</label>
+                        <input type="number" id="top" value="100" min="0" max="2000">
+                    </div>
+                    <div class="form-group">
+                        <label for="bottom">아래쪽 (px)</label>
+                        <input type="number" id="bottom" value="100" min="0" max="2000">
+                    </div>
+                    <div class="form-group">
+                        <label for="left">왼쪽 (px)</label>
+                        <input type="number" id="left" value="100" min="0" max="2000">
+                    </div>
+                    <div class="form-group">
+                        <label for="right">오른쪽 (px)</label>
+                        <input type="number" id="right" value="100" min="0" max="2000">
+                    </div>
+                </div>
+
+                <!-- 크기 지정 모드 -->
+                <div id="sizeMode" class="controls" style="display: none;">
+                    <div class="form-group">
+                        <label for="targetWidth">목표 너비 (px)</label>
+                        <input type="number" id="targetWidth" value="1920" min="1" max="4096">
+                    </div>
+                    <div class="form-group">
+                        <label for="targetHeight">목표 높이 (px)</label>
+                        <input type="number" id="targetHeight" value="1080" min="1" max="4096">
+                    </div>
+                    <div class="form-group">
+                        <label for="position">이미지 위치</label>
+                        <select id="position">
+                            <option value="center">중앙</option>
+                            <option value="top-left">왼쪽 위</option>
+                            <option value="top-right">오른쪽 위</option>
+                            <option value="bottom-left">왼쪽 아래</option>
+                            <option value="bottom-right">오른쪽 아래</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="format">출력 포맷</label>
+                    <select id="format">
+                        <option value="png">PNG</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="webp">WebP</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 실행 버튼 -->
+            <div class="section">
+                <button id="extendBtn" onclick="extendImage()">이미지 확장하기</button>
+            </div>
+
+            <!-- 상태 메시지 -->
+            <div id="status"></div>
+
+            <!-- 결과 표시 -->
+            <div id="results" class="result-container" style="display: none;">
+                <div class="image-box">
+                    <h3>원본 이미지</h3>
+                    <img id="originalImage" alt="원본 이미지">
+                    <div class="info" id="originalInfo"></div>
+                </div>
+                <div class="image-box">
+                    <h3>확장된 이미지</h3>
+                    <img id="extendedImage" alt="확장된 이미지">
+                    <div class="info" id="extendedInfo"></div>
+                    <button onclick="downloadImage()" style="margin-top: 15px;">다운로드</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        let extendedBlob = null;
+
+        // 모드 전환
+        document.getElementById('extendMode').addEventListener('change', (e) => {
+            const isPixelMode = e.target.value === 'pixels';
+            document.getElementById('pixelMode').style.display = isPixelMode ? 'grid' : 'none';
+            document.getElementById('sizeMode').style.display = isPixelMode ? 'none' : 'grid';
+        });
+
+        // 원본 이미지 미리보기
+        document.getElementById('imageInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = document.getElementById('originalImage');
+                    img.src = event.target.result;
+
+                    // 이미지 로드 후 크기 정보 표시
+                    img.onload = () => {
+                        document.getElementById('originalInfo').textContent =
+                            `크기: ${img.naturalWidth} × ${img.naturalHeight}px`;
+                        document.getElementById('results').style.display = 'grid';
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 이미지 확장
+        async function extendImage() {
+            const fileInput = document.getElementById('imageInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showStatus('이미지를 선택해주세요.', 'error');
+                return;
+            }
+
+            const mode = document.getElementById('extendMode').value;
+            const format = document.getElementById('format').value;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('method', 'sd');  // Stable Diffusion 고정
+            formData.append('format', format);
+
+            let endpoint = '';
+
+            if (mode === 'pixels') {
+                endpoint = '/extend';
+                formData.append('top', document.getElementById('top').value);
+                formData.append('bottom', document.getElementById('bottom').value);
+                formData.append('left', document.getElementById('left').value);
+                formData.append('right', document.getElementById('right').value);
+            } else {
+                endpoint = '/extend-to-size';
+                formData.append('target_width', document.getElementById('targetWidth').value);
+                formData.append('target_height', document.getElementById('targetHeight').value);
+                formData.append('position', document.getElementById('position').value);
+            }
+
+            // 버튼 비활성화
+            const btn = document.getElementById('extendBtn');
+            btn.disabled = true;
+            btn.textContent = '처리 중...';
+
+            showStatus('이미지를 확장하는 중입니다...', 'loading');
+
+            try {
+                const response = await fetch(API_BASE_URL + endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`서버 오류: ${response.status} - ${errorText}`);
+                }
+
+                // 결과 이미지 표시
+                extendedBlob = await response.blob();
+                const imageUrl = URL.createObjectURL(extendedBlob);
+
+                const extendedImg = document.getElementById('extendedImage');
+                extendedImg.src = imageUrl;
+
+                // 헤더에서 메타데이터 읽기
+                const extendedSize = response.headers.get('X-Extended-Size');
+                const methodUsed = response.headers.get('X-Method');
+
+                extendedImg.onload = () => {
+                    document.getElementById('extendedInfo').textContent =
+                        `크기: ${extendedSize}\n방법: ${methodUsed}`;
+                };
+
+                showStatus('이미지 확장이 완료되었습니다!', 'success');
+
+            } catch (error) {
+                showStatus(`오류 발생: ${error.message}`, 'error');
+                console.error('Error:', error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '이미지 확장하기';
+            }
+        }
+
+        // 상태 메시지 표시
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = type;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // 이미지 다운로드
+        function downloadImage() {
+            if (!extendedBlob) {
+                alert('다운로드할 이미지가 없습니다.');
+                return;
+            }
+
+            const format = document.getElementById('format').value;
+            const url = URL.createObjectURL(extendedBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `extended_image.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)",
+      "Bash(del lama_inpainter.py download_lama_model.py)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
