@@ -12,6 +12,7 @@ import logging
 import numpy as np
 from typing import Optional
 from image_extender import ImageExtender
+from prompt_translator import get_translator
 
 # 로깅 설정
 logging.basicConfig(
@@ -239,7 +240,8 @@ async def extend_to_size(
 async def inpaint_image(
     file: UploadFile = File(..., description="원본 이미지 파일"),
     mask: UploadFile = File(..., description="마스크 이미지 (흰색=채울 영역)"),
-    prompt: str = Form("natural background, high quality, detailed", description="SD 프롬프트"),
+    prompt: str = Form("natural background, high quality, detailed", description="SD 프롬프트 (한글/일본어/중국어/영어 지원)"),
+    negative_prompt: str = Form("blurry, low quality, distorted, artifacts", description="네거티브 프롬프트 (다국어 지원)"),
     format: str = Form("png", description="출력 포맷 (png/jpeg/webp)")
 ):
     """
@@ -247,8 +249,11 @@ async def inpaint_image(
 
     - **file**: 원본 이미지 파일
     - **mask**: 마스크 이미지 (흰색 영역이 채워질 부분)
-    - **prompt**: 생성할 내용 설명 프롬프트
+    - **prompt**: 생성할 내용 설명 프롬프트 (한글, 일본어, 중국어, 영어 모두 지원)
+    - **negative_prompt**: 피하고 싶은 내용 (다국어 지원)
     - **format**: 출력 이미지 포맷
+
+    프롬프트는 자동으로 영어로 번역되어 Stable Diffusion에 전달됩니다.
     """
     try:
         # 파일 검증
@@ -279,6 +284,18 @@ async def inpaint_image(
         image_array = np.array(image_pil)
         mask_array = np.array(mask_pil)
 
+        # 프롬프트 자동 번역 (한글/일본어/중국어 → 영어)
+        translator = get_translator()
+        original_prompt = prompt
+        original_negative = negative_prompt
+        translated_prompt, translated_negative = translator.translate_with_fallback(prompt, negative_prompt)
+
+        logger.info(f"Original prompt: {original_prompt}")
+        logger.info(f"Translated prompt: {translated_prompt}")
+        if original_negative != translated_negative:
+            logger.info(f"Original negative: {original_negative}")
+            logger.info(f"Translated negative: {translated_negative}")
+
         # Stable Diffusion inpainting
         logger.info(f"Using Stable Diffusion inpainting")
         from sd_inpainter import get_sd_inpainter
@@ -286,13 +303,14 @@ async def inpaint_image(
         result_array = inpainter.inpaint(
             image=image_array,
             mask=mask_array,
-            prompt=prompt
+            prompt=translated_prompt,
+            negative_prompt=translated_negative
         )
 
         # NumPy to PIL
         result_pil = Image.fromarray(result_array)
 
-        logger.info(f"Inpainting completed with {method}")
+        logger.info(f"Inpainting completed successfully")
 
         # 이미지를 바이트로 변환
         img_byte_arr = io.BytesIO()
@@ -319,7 +337,9 @@ async def inpaint_image(
             media_type=media_type,
             headers={
                 "X-Original-Size": f"{original_size[0]}x{original_size[1]}",
-                "X-Method": "sd"
+                "X-Method": "sd",
+                "X-Original-Prompt": original_prompt,
+                "X-Translated-Prompt": translated_prompt
             }
         )
 

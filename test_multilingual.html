@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다국어 Inpainting 테스트 - 한글/일본어/영어</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #764ba2;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .prompt-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .prompt-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .prompt-examples {
+            margin-top: 10px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+
+        .prompt-examples h3 {
+            color: #667eea;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .example-tag {
+            display: inline-block;
+            padding: 8px 15px;
+            margin: 5px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .example-tag:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-area {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .preview-box {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .preview-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .preview-box img {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #17a2b8;
+        }
+
+        .translation-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f2ff;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .translation-info h4 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 다국어 AI Inpainting</h1>
+            <p>한글, 일본어, 영어 프롬프트를 자동으로 번역해서 사용합니다</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>💡 사용 방법</h3>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>원본 이미지와 마스크 이미지를 업로드하세요</li>
+                    <li>한글, 일본어, 영어로 원하는 배경을 설명하세요</li>
+                    <li>프롬프트는 자동으로 영어로 번역되어 Stable Diffusion에 전달됩니다</li>
+                    <li>"생성하기" 버튼을 클릭하세요</li>
+                </ol>
+            </div>
+
+            <div class="section">
+                <h2>📁 이미지 업로드</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label class="upload-area" for="imageInput" id="imageUploadArea">
+                            <p style="font-size: 3em; margin-bottom: 10px;">🖼️</p>
+                            <p style="font-size: 1.2em; font-weight: bold;">원본 이미지</p>
+                            <p style="opacity: 0.7;">클릭하거나 드래그하여 업로드</p>
+                        </label>
+                        <input type="file" id="imageInput" accept="image/*">
+                    </div>
+                    <div>
+                        <label class="upload-area" for="maskInput" id="maskUploadArea">
+                            <p style="font-size: 3em; margin-bottom: 10px;">🎭</p>
+                            <p style="font-size: 1.2em; font-weight: bold;">마스크 이미지</p>
+                            <p style="opacity: 0.7;">흰색 = 채울 영역</p>
+                        </label>
+                        <input type="file" id="maskInput" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>✍️ 프롬프트 입력 (다국어 지원)</h2>
+                <input
+                    type="text"
+                    id="promptInput"
+                    class="prompt-input"
+                    placeholder="원하는 배경을 한글, 일본어, 영어로 입력하세요 (예: 따뜻한 카페 인테리어, 아늑한 분위기)"
+                    value="따뜻한 카페 인테리어, 아늑한 분위기"
+                >
+
+                <div class="prompt-examples">
+                    <h3>📝 프롬프트 예시 (클릭하면 적용됩니다)</h3>
+                    <div>
+                        <strong>한글:</strong><br>
+                        <span class="example-tag" data-lang="ko">따뜻한 카페 인테리어, 아늑한 분위기</span>
+                        <span class="example-tag" data-lang="ko">해변, 석양, 파도</span>
+                        <span class="example-tag" data-lang="ko">현대적인 사무실, 깔끔한 디자인</span>
+                        <span class="example-tag" data-lang="ko">녹색 숲, 나무, 자연</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <strong>日本語:</strong><br>
+                        <span class="example-tag" data-lang="ja">温かいカフェのインテリア、居心地の良い雰囲気</span>
+                        <span class="example-tag" data-lang="ja">ビーチ、夕日、波</span>
+                        <span class="example-tag" data-lang="ja">モダンなオフィス、すっきりとしたデザイン</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <strong>English:</strong><br>
+                        <span class="example-tag" data-lang="en">warm cafe interior, cozy atmosphere</span>
+                        <span class="example-tag" data-lang="en">beach sunset, ocean waves</span>
+                        <span class="example-tag" data-lang="en">modern office, clean design</span>
+                        <span class="example-tag" data-lang="en">green forest, trees, nature</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>⚙️ 네거티브 프롬프트 (선택사항)</h2>
+                <input
+                    type="text"
+                    id="negativeInput"
+                    class="prompt-input"
+                    placeholder="피하고 싶은 요소 (예: 흐릿한, 저화질, 왜곡됨)"
+                    value="흐릿한, 저화질, 왜곡됨, 인공물"
+                >
+            </div>
+
+            <div class="section" style="text-align: center;">
+                <button class="btn" id="generateBtn" disabled>🎨 생성하기</button>
+            </div>
+
+            <div id="statusArea"></div>
+
+            <div class="preview-area" id="previewArea" style="display: none;">
+                <div class="preview-box">
+                    <h3>원본 이미지</h3>
+                    <img id="originalPreview" alt="원본 이미지">
+                </div>
+                <div class="preview-box">
+                    <h3>마스크</h3>
+                    <img id="maskPreview" alt="마스크">
+                </div>
+                <div class="preview-box">
+                    <h3>결과</h3>
+                    <img id="resultPreview" alt="결과 이미지">
+                    <div class="translation-info" id="translationInfo" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const maskInput = document.getElementById('maskInput');
+        const promptInput = document.getElementById('promptInput');
+        const negativeInput = document.getElementById('negativeInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const statusArea = document.getElementById('statusArea');
+        const previewArea = document.getElementById('previewArea');
+
+        let imageFile = null;
+        let maskFile = null;
+
+        // 드래그 앤 드롭
+        function setupDragDrop(uploadArea, input, previewId) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    input.files = files;
+                    handleFileSelect(input, previewId);
+                }
+            });
+        }
+
+        function handleFileSelect(input, previewId) {
+            const file = input.files[0];
+            if (file) {
+                if (input.id === 'imageInput') {
+                    imageFile = file;
+                } else {
+                    maskFile = file;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById(previewId).src = e.target.result;
+                    previewArea.style.display = 'grid';
+                };
+                reader.readAsDataURL(file);
+
+                checkReadyState();
+            }
+        }
+
+        function checkReadyState() {
+            generateBtn.disabled = !(imageFile && maskFile && promptInput.value.trim());
+        }
+
+        setupDragDrop(document.getElementById('imageUploadArea'), imageInput, 'originalPreview');
+        setupDragDrop(document.getElementById('maskUploadArea'), maskInput, 'maskPreview');
+
+        imageInput.addEventListener('change', () => handleFileSelect(imageInput, 'originalPreview'));
+        maskInput.addEventListener('change', () => handleFileSelect(maskInput, 'maskPreview'));
+        promptInput.addEventListener('input', checkReadyState);
+
+        // 프롬프트 예시 클릭
+        document.querySelectorAll('.example-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                promptInput.value = tag.textContent;
+                checkReadyState();
+            });
+        });
+
+        // 생성 버튼
+        generateBtn.addEventListener('click', async () => {
+            if (!imageFile || !maskFile || !promptInput.value.trim()) {
+                showStatus('error', '모든 필드를 입력해주세요!');
+                return;
+            }
+
+            generateBtn.disabled = true;
+            showStatus('loading', '🎨 AI가 이미지를 생성하는 중입니다... (30초~1분 소요)');
+
+            const formData = new FormData();
+            formData.append('file', imageFile);
+            formData.append('mask', maskFile);
+            formData.append('prompt', promptInput.value);
+            formData.append('negative_prompt', negativeInput.value);
+            formData.append('format', 'png');
+
+            try {
+                const response = await fetch('http://localhost:8000/inpaint', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '생성 실패');
+                }
+
+                // 번역 정보 가져오기
+                const originalPrompt = response.headers.get('X-Original-Prompt');
+                const translatedPrompt = response.headers.get('X-Translated-Prompt');
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                document.getElementById('resultPreview').src = url;
+
+                // 번역 정보 표시
+                if (originalPrompt && translatedPrompt && originalPrompt !== translatedPrompt) {
+                    const translationInfo = document.getElementById('translationInfo');
+                    translationInfo.innerHTML = `
+                        <h4>🌐 자동 번역</h4>
+                        <p><strong>원본:</strong> ${originalPrompt}</p>
+                        <p><strong>번역:</strong> ${translatedPrompt}</p>
+                    `;
+                    translationInfo.style.display = 'block';
+                }
+
+                showStatus('success', '✅ 생성 완료! 결과를 확인하세요.');
+                previewArea.style.display = 'grid';
+
+            } catch (error) {
+                showStatus('error', `❌ 오류: ${error.message}`);
+            } finally {
+                generateBtn.disabled = false;
+            }
+        });
+
+        function showStatus(type, message) {
+            statusArea.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+    </script>
+</body>
+</html>
