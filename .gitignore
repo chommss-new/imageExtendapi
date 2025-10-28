@@ -54,3 +54,4 @@ checkpoints/
 # Environment variables
 .env
 .env.local
+models_cache/
