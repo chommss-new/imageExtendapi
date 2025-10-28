@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       # 모델 캐시를 호스트에 저장하여 재시작 시 재다운로드 방지
       - ./models_cache:/root/.cache/huggingface

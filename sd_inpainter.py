@@ -37,10 +37,10 @@ class SDInpainter:
             logger.info(f"Loading Stable Diffusion model: {model_id}")
             logger.info("First run will download ~5GB model (one-time only)")
 
-            # 모델 로드
+            # 모델 로드 (품질 우선을 위해 float32 사용)
             self.pipe = StableDiffusionInpaintPipeline.from_pretrained(
                 model_id,
-                torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32,
+                torch_dtype=torch.float32,  # 높은 품질을 위해 float32 사용
                 safety_checker=None,  # 빠른 처리를 위해 비활성화
                 requires_safety_checker=False
             )
@@ -49,12 +49,11 @@ class SDInpainter:
 
             # 메모리 최적화
             if self.device.type == "cpu":
-                # CPU에서는 float32 사용
-                logger.info("Using CPU - this will be slower")
+                logger.info("Using CPU with float32 - this will be slower but high quality")
             else:
                 # GPU에서 메모리 최적화
                 self.pipe.enable_attention_slicing()
-                logger.info("GPU optimizations enabled")
+                logger.info("GPU optimizations enabled with float32 for highest quality")
 
             self.model_available = True
             logger.info(f"Stable Diffusion model loaded on {self.device}")
@@ -78,10 +77,10 @@ class SDInpainter:
         image: np.ndarray,
         mask: np.ndarray,
         prompt: str = "natural background, high quality, detailed, seamless, photorealistic",
-        negative_prompt: str = "blurry, low quality, distorted, artifacts, watermark, text, cropped, out of frame, jpeg artifacts",
-        num_inference_steps: int = 50,  # 높은 품질을 위해 50 스텝 사용
-        guidance_scale: float = 12.0,  # 프롬프트를 더 잘 따르도록 증가
-        strength: float = 0.75  # 원본과 자연스럽게 블렌딩되도록 낮춤
+        negative_prompt: str = "blurry, low quality, distorted, artifacts, watermark, text, cropped, out of frame, jpeg artifacts, gradient layers, visible seams, hard edges",
+        num_inference_steps: int = 75,  # 높은 품질
+        guidance_scale: float = 7.5,  # 자연스러운 생성
+        strength: float = 0.9  # 강한 생성력
     ) -> np.ndarray:
         """
         Stable Diffusion 인페인팅 수행

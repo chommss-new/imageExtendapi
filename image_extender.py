@@ -93,8 +93,17 @@ class ImageExtender:
         # 2단계: 마스크 생성 (확장 영역만)
         mask = np.zeros((new_h, new_w), dtype=np.uint8)
 
-        # 약간의 overlap으로 자연스러운 전환
-        overlap = min(10, min(top, bottom, left, right) // 2) if min(top, bottom, left, right) > 0 else 10
+        # 약간의 overlap으로 자연스러운 전환 (큰 확장에는 더 큰 overlap 필요)
+        expand_sizes = [x for x in [top, bottom, left, right] if x > 0]
+        if expand_sizes:
+            max_expand = max(expand_sizes)
+            # 큰 확장(100px 이상)에는 40-50px overlap, 작은 확장에는 10-20px
+            if max_expand >= 100:
+                overlap = min(50, max_expand // 4)
+            else:
+                overlap = min(20, max_expand // 3)
+        else:
+            overlap = 10
 
         if top > 0:
             mask[0:top+overlap, :] = 255
@@ -110,9 +119,9 @@ class ImageExtender:
 
         # 3단계: Stable Diffusion inpainting
         prompt = kwargs.get('prompt', self.sd_prompt)
-        num_inference_steps = kwargs.get('num_inference_steps', 50)  # 최고 품질
-        guidance_scale = kwargs.get('guidance_scale', 12.0)  # 프롬프트 가이던스 강화
-        strength = kwargs.get('strength', 0.75)  # 원본과 자연스럽게 블렌딩
+        num_inference_steps = kwargs.get('num_inference_steps', 75)  # 높은 품질
+        guidance_scale = kwargs.get('guidance_scale', 7.5)  # 자연스러운 생성
+        strength = kwargs.get('strength', 0.9)  # 강한 생성력
 
         try:
             result = self._sd_inpainter.inpaint(
