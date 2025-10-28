@@ -77,11 +77,11 @@ class SDInpainter:
         self,
         image: np.ndarray,
         mask: np.ndarray,
-        prompt: str = "natural background, high quality, detailed",
-        negative_prompt: str = "blurry, low quality, distorted, artifacts",
-        num_inference_steps: int = 15,  # 30 → 15로 줄여서 2배 빠르게
-        guidance_scale: float = 7.5,
-        strength: float = 0.99
+        prompt: str = "natural background, high quality, detailed, seamless, photorealistic",
+        negative_prompt: str = "blurry, low quality, distorted, artifacts, watermark, text, cropped, out of frame, jpeg artifacts",
+        num_inference_steps: int = 50,  # 높은 품질을 위해 50 스텝 사용
+        guidance_scale: float = 12.0,  # 프롬프트를 더 잘 따르도록 증가
+        strength: float = 0.75  # 원본과 자연스럽게 블렌딩되도록 낮춤
     ) -> np.ndarray:
         """
         Stable Diffusion 인페인팅 수행

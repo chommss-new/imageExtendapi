@@ -28,7 +28,7 @@ class ImageExtender:
             method = "sd"
 
         self.method = method
-        self.sd_prompt = sd_prompt or "natural background, high quality, detailed, seamless"
+        self.sd_prompt = sd_prompt or "natural background, high quality, detailed, seamless, photorealistic"
 
         # SD 인페인터 초기화
         try:
@@ -110,8 +110,9 @@ class ImageExtender:
 
         # 3단계: Stable Diffusion inpainting
         prompt = kwargs.get('prompt', self.sd_prompt)
-        num_inference_steps = kwargs.get('num_inference_steps', 30)
-        guidance_scale = kwargs.get('guidance_scale', 7.5)
+        num_inference_steps = kwargs.get('num_inference_steps', 50)  # 최고 품질
+        guidance_scale = kwargs.get('guidance_scale', 12.0)  # 프롬프트 가이던스 강화
+        strength = kwargs.get('strength', 0.75)  # 원본과 자연스럽게 블렌딩
 
         try:
             result = self._sd_inpainter.inpaint(
@@ -119,7 +120,8 @@ class ImageExtender:
                 mask=mask,
                 prompt=prompt,
                 num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale
+                guidance_scale=guidance_scale,
+                strength=strength
             )
 
             logger.info("SD inpainting completed successfully")
