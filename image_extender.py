@@ -78,6 +78,31 @@ class ImageExtender:
         new_h = h + top + bottom
         new_w = w + left + right
 
+        # 고해상도 이미지 처리 최적화
+        max_dimension = max(new_h, new_w)
+
+        # SD 최적 크기: 512~768px (이보다 크면 다운스케일 후 처리)
+        target_max_dim = 768
+
+        if max_dimension > target_max_dim:
+            logger.info(f"High-res image detected ({max_dimension}px). Using downscale strategy for better quality and speed.")
+            return self._extend_with_downscale(image, top, bottom, left, right, target_max_dim, **kwargs)
+        else:
+            return self._extend_direct(image, top, bottom, left, right, **kwargs)
+
+    def _extend_direct(
+        self,
+        image: Image.Image,
+        top: int, bottom: int, left: int, right: int,
+        **kwargs
+    ) -> Image.Image:
+        """직접 SD 인페인팅 (중저해상도)"""
+
+        img_array = np.array(image.convert('RGB'))
+        h, w = img_array.shape[:2]
+        new_h = h + top + bottom
+        new_w = w + left + right
+
         # 1단계: 초기 캔버스 생성 (REPLICATE 방식)
         img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
         canvas_bgr = cv2.copyMakeBorder(
@@ -140,6 +165,52 @@ class ImageExtender:
             logger.error(f"SD inpainting failed: {e}")
             # 실패 시 원본 캔버스 반환
             return Image.fromarray(canvas)
+
+    def _extend_with_downscale(
+        self,
+        image: Image.Image,
+        top: int, bottom: int, left: int, right: int,
+        target_max_dim: int,
+        **kwargs
+    ) -> Image.Image:
+        """고해상도 이미지를 다운스케일 후 처리하여 품질과 속도 개선"""
+
+        w, h = image.size
+        new_h = h + top + bottom
+        new_w = w + left + right
+
+        # 스케일 비율 계산
+        scale = target_max_dim / max(new_h, new_w)
+
+        logger.info(f"Original size: {w}x{h}, Target canvas: {new_w}x{new_h}")
+        logger.info(f"Scale factor: {scale:.3f}")
+
+        # 1단계: 이미지와 확장 영역을 비례적으로 다운스케일
+        scaled_w = int(w * scale)
+        scaled_h = int(h * scale)
+        scaled_top = int(top * scale)
+        scaled_bottom = int(bottom * scale)
+        scaled_left = int(left * scale)
+        scaled_right = int(right * scale)
+
+        # 고품질 리샘플링으로 다운스케일
+        small_image = image.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+
+        logger.info(f"Downscaled to: {scaled_w}x{scaled_h} (expand: t={scaled_top}, b={scaled_bottom}, l={scaled_left}, r={scaled_right})")
+
+        # 2단계: 작은 크기로 SD 인페인팅 수행 (빠르고 품질 좋음)
+        small_extended = self._extend_direct(
+            small_image,
+            scaled_top, scaled_bottom, scaled_left, scaled_right,
+            **kwargs
+        )
+
+        # 3단계: 원본 크기로 업스케일 (고품질 리샘플링)
+        final_result = small_extended.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+        logger.info(f"Upscaled back to: {new_w}x{new_h}")
+
+        return final_result
 
     def extend_to_size(
         self,
