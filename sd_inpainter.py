@@ -76,11 +76,11 @@ class SDInpainter:
         self,
         image: np.ndarray,
         mask: np.ndarray,
-        prompt: str = "natural background, high quality, detailed, seamless, photorealistic",
-        negative_prompt: str = "blurry, low quality, distorted, artifacts, watermark, text, cropped, out of frame, jpeg artifacts, gradient layers, visible seams, hard edges",
+        prompt: str = "seamless background extension, natural scenery, photorealistic, high quality, detailed textures, consistent lighting, no text, no watermark, no letters, no numbers, no symbols",
+        negative_prompt: str = "text, watermark, letters, words, numbers, symbols, characters, writing, typography, signature, blurry, low quality, distorted, artifacts, cropped, out of frame, jpeg artifacts, gradient layers, visible seams, hard edges",
         num_inference_steps: int = 75,  # 높은 품질
-        guidance_scale: float = 7.5,  # 자연스러운 생성
-        strength: float = 0.9  # 강한 생성력
+        guidance_scale: float = 8.0,  # 프롬프트 충실도 증가 (텍스트 방지)
+        strength: float = 0.95  # 더 강한 생성력
     ) -> np.ndarray:
         """
         Stable Diffusion 인페인팅 수행

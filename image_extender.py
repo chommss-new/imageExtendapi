@@ -9,6 +9,7 @@ from PIL import Image
 from typing import Tuple, Optional
 import logging
 from sd_inpainter import get_sd_inpainter
+from image_analyzer import get_image_analyzer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,18 +18,21 @@ logger = logging.getLogger(__name__)
 class ImageExtender:
     """Stable Diffusion을 사용하여 이미지를 배경에 맞춰 확장하는 클래스"""
 
-    def __init__(self, method: str = "sd", sd_prompt: str = None):
+    def __init__(self, method: str = "sd", sd_prompt: str = None, use_auto_prompt: bool = True):
         """
         Args:
             method: 확장 방법 ('sd' - Stable Diffusion)
-            sd_prompt: Stable Diffusion 프롬프트
+            sd_prompt: Stable Diffusion 프롬프트 (None이면 자동 생성)
+            use_auto_prompt: True면 이미지 분석으로 자동 프롬프트 생성
         """
         if method != "sd":
             logger.warning(f"Method '{method}' not supported. Using 'sd' instead.")
             method = "sd"
 
         self.method = method
-        self.sd_prompt = sd_prompt or "natural background, high quality, detailed, seamless, photorealistic"
+        self.use_auto_prompt = use_auto_prompt
+        # 텍스트/글씨 방지를 위한 개선된 프롬프트 (fallback용)
+        self.sd_prompt = sd_prompt or "seamless background extension, natural scenery, photorealistic, high quality, detailed textures, consistent lighting, no text, no watermark, no letters, no numbers, no symbols"
 
         # SD 인페인터 초기화
         try:
@@ -38,6 +42,17 @@ class ImageExtender:
         except Exception as e:
             logger.error(f"Failed to load Stable Diffusion: {e}")
             raise
+
+        # 이미지 분석기 초기화 (지연 로딩)
+        self._image_analyzer = None
+        if self.use_auto_prompt:
+            try:
+                logger.info("Loading image analyzer for auto-prompt generation...")
+                self._image_analyzer = get_image_analyzer()
+                logger.info("Image analyzer loaded successfully")
+            except Exception as e:
+                logger.warning(f"Failed to load image analyzer: {e}. Will use default prompts.")
+                self.use_auto_prompt = False
 
     def extend_image(
         self,
@@ -142,21 +157,44 @@ class ImageExtender:
         # 원본 영역 보호
         mask[top+overlap:top+h-overlap, left+overlap:left+w-overlap] = 0
 
-        # 3단계: Stable Diffusion inpainting
-        prompt = kwargs.get('prompt', self.sd_prompt)
+        # 3단계: 프롬프트 생성 (자동 or 수동)
+        if 'prompt' not in kwargs and self.use_auto_prompt and self._image_analyzer:
+            try:
+                logger.info("Analyzing image to generate context-aware prompt...")
+                auto_prompt, auto_negative = self._image_analyzer.generate_prompts(
+                    image,
+                    for_extension=True
+                )
+                prompt = auto_prompt
+                negative_prompt = auto_negative
+                logger.info(f"Auto-generated prompt: {prompt}")
+            except Exception as e:
+                logger.warning(f"Auto-prompt generation failed: {e}. Using default prompt.")
+                prompt = self.sd_prompt
+                negative_prompt = kwargs.get('negative_prompt', None)
+        else:
+            prompt = kwargs.get('prompt', self.sd_prompt)
+            negative_prompt = kwargs.get('negative_prompt', None)
+
         num_inference_steps = kwargs.get('num_inference_steps', 75)  # 높은 품질
-        guidance_scale = kwargs.get('guidance_scale', 7.5)  # 자연스러운 생성
-        strength = kwargs.get('strength', 0.9)  # 강한 생성력
+        guidance_scale = kwargs.get('guidance_scale', 8.0)  # 프롬프트 충실도 증가 (텍스트 방지)
+        strength = kwargs.get('strength', 0.95)  # 더 강한 생성력으로 원본 배경 충실하게 확장
 
         try:
-            result = self._sd_inpainter.inpaint(
-                image=canvas,
-                mask=mask,
-                prompt=prompt,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                strength=strength
-            )
+            inpaint_kwargs = {
+                'image': canvas,
+                'mask': mask,
+                'prompt': prompt,
+                'num_inference_steps': num_inference_steps,
+                'guidance_scale': guidance_scale,
+                'strength': strength
+            }
+
+            # negative_prompt가 있으면 추가
+            if negative_prompt:
+                inpaint_kwargs['negative_prompt'] = negative_prompt
+
+            result = self._sd_inpainter.inpaint(**inpaint_kwargs)
 
             logger.info("SD inpainting completed successfully")
             return Image.fromarray(result)

@@ -240,8 +240,8 @@ async def extend_to_size(
 async def inpaint_image(
     file: UploadFile = File(..., description="원본 이미지 파일"),
     mask: UploadFile = File(..., description="마스크 이미지 (흰색=채울 영역)"),
-    prompt: str = Form("natural background, high quality, detailed", description="SD 프롬프트 (한글/일본어/중국어/영어 지원)"),
-    negative_prompt: str = Form("blurry, low quality, distorted, artifacts", description="네거티브 프롬프트 (다국어 지원)"),
+    prompt: str = Form("seamless background extension, natural scenery, photorealistic, high quality, detailed textures, consistent lighting", description="SD 프롬프트 (한글/일본어/중국어/영어 지원)"),
+    negative_prompt: str = Form("text, watermark, letters, words, numbers, symbols, characters, writing, typography, signature, blurry, low quality, distorted, artifacts", description="네거티브 프롬프트 (다국어 지원)"),
     format: str = Form("png", description="출력 포맷 (png/jpeg/webp)")
 ):
     """
